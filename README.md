@@ -1,8 +1,6 @@
 # Home Assistant YOLO Updater
 
-<p align="center">
-  <img src="custom_components/yolo_updater/brand/icon.png" alt="YOLO Updater" width="200"/>
-</p>
+![YOLO Updater](https://raw.githubusercontent.com/jjsmackay/hass-yolo-updater/main/custom_components/yolo_updater/brand/icon.png)
 
 Press the button. Update everything. No ragrets.
 
