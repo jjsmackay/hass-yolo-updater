@@ -13,7 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 _LOGGER = logging.getLogger(__name__)
 
-TEST_MODE = True  # Set True to load dummy update entities for testing
+TEST_MODE = False  # Set True to load dummy update entities for testing
 
 
 async def async_setup_entry(
@@ -50,10 +50,16 @@ class UpdateAllEntity(UpdateEntity):
         """Register listeners when added to hass."""
         self._refresh_pending()
 
-        self._unsub.append(self._hass.bus.async_listen(EVENT_STATE_CHANGED, self._on_state_change))
+        self._unsub.append(
+            self._hass.bus.async_listen(EVENT_STATE_CHANGED, self._on_state_change)
+        )
 
         if not self._hass.is_running:
-            self._unsub.append(self._hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, self._on_ha_started))
+            self._unsub.append(
+                self._hass.bus.async_listen_once(
+                    EVENT_HOMEASSISTANT_STARTED, self._on_ha_started
+                )
+            )
 
     async def async_will_remove_from_hass(self) -> None:
         """Clean up listeners."""
@@ -99,7 +105,9 @@ class UpdateAllEntity(UpdateEntity):
     # Actions
     # ------------------------------------------------------------------
 
-    async def async_install(self, version: str | None, backup: bool, **kwargs: Any) -> None:
+    async def async_install(
+        self, version: str | None, backup: bool, **kwargs: Any
+    ) -> None:
         """Install all pending updates."""
         targets = list(self._pending.keys())
         if not targets:
