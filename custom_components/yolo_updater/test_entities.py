@@ -17,12 +17,14 @@ DUMMY_UPDATES = [
         "name": "Dummy Widget Alpha",
         "installed": "1.0.0",
         "latest": "2.0.0",
+        "release_url": "https://example.com/widget-alpha/releases/2.0.0",
     },
     {
         "id": "dummy_widget_beta",
         "name": "Dummy Widget Beta",
         "installed": "3.1.0",
         "latest": "3.2.0",
+        # no release_url -> renders as plain text
     },
     {
         "id": "dummy_widget_gamma",
@@ -53,6 +55,7 @@ class DummyUpdateEntity(UpdateEntity):
         self._attr_name = info["name"]
         self._attr_installed_version = info["installed"]
         self._attr_latest_version = info["latest"]
+        self._attr_release_url = info.get("release_url")
 
     async def async_install(
         self, version: str | None, backup: bool, **kwargs

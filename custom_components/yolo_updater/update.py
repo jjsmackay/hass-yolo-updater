@@ -35,7 +35,9 @@ class UpdateAllEntity(UpdateEntity):
 
     _attr_has_entity_name = False
     _attr_name = "! YOLO Update All"
-    _attr_supported_features = UpdateEntityFeature.INSTALL
+    _attr_supported_features = (
+        UpdateEntityFeature.INSTALL | UpdateEntityFeature.RELEASE_NOTES
+    )
     _attr_should_poll = False
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -43,6 +45,7 @@ class UpdateAllEntity(UpdateEntity):
         self._attr_unique_id = f"{entry.entry_id}_yolo_all"
         self.entity_id = "update.yolo_all"
         self._hass = hass
+        self._entry = entry
         self._pending: dict[str, dict[str, str | None]] = {}
         self._unsub: list = []
 
@@ -85,15 +88,25 @@ class UpdateAllEntity(UpdateEntity):
 
     @property
     def release_summary(self) -> str | None:
-        """List pending updates."""
+        """Short summary. HA caps this at 255 chars, so keep it to a count."""
+        if not self._pending:
+            return None
+        return f"{len(self._pending)} update(s) pending"
+
+    async def async_release_notes(self) -> str | None:
+        """Full pending list with release-notes links (not length-capped)."""
         if not self._pending:
             return None
         lines = [f"**{len(self._pending)} update(s) pending:**\n"]
         for entity_id, info in sorted(self._pending.items()):
             name = info.get("friendly_name", entity_id)
+            if name and name.endswith(" Update"):
+                name = name[: -len(" Update")]
             cur = info.get("installed_version") or "?"
             new = info.get("latest_version") or "?"
-            lines.append(f"- {name}: {cur} \u2192 {new}")
+            url = info.get("release_url")
+            new_label = f"[{new}]({url})" if url else new
+            lines.append(f"- {name}: {cur} \u2192 {new_label}")
         return "\n".join(lines)
 
     @property
@@ -149,6 +162,7 @@ class UpdateAllEntity(UpdateEntity):
                     "friendly_name": state.attributes.get("friendly_name"),
                     "installed_version": state.attributes.get("installed_version"),
                     "latest_version": state.attributes.get("latest_version"),
+                    "release_url": state.attributes.get("release_url"),
                 }
 
     @callback
@@ -166,6 +180,7 @@ class UpdateAllEntity(UpdateEntity):
                 "friendly_name": new_state.attributes.get("friendly_name"),
                 "installed_version": new_state.attributes.get("installed_version"),
                 "latest_version": new_state.attributes.get("latest_version"),
+                "release_url": new_state.attributes.get("release_url"),
             }
         else:
             self._pending.pop(entity_id, None)

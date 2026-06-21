@@ -1,3 +1,6 @@
+# Local design specs and implementation plans (not committed)
+docs/superpowers/
+
 __pycache__/
 *.py[cod]
 *.egg-info/
