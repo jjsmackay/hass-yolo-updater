@@ -8,10 +8,13 @@ Tired of clicking through a dozen individual update cards? YOLO Updater adds a s
 
 ## Features
 
-- Aggregates **all** pending Home Assistant update entities into one
+- Aggregates your pending Home Assistant update entities into one `! YOLO Update All` entity
+- **Opt-in by default.** You pick which categories it may install: HACS, Firmware, Apps, Other
+- Leaves Home Assistant Core, OS, and Supervisor alone. You can't opt them in
+- Exclude whole integrations, or individual entities
 - Sorts to the top of the updates list (`! YOLO Update All`)
-- Reactively updates — no polling, event-driven
-- One tap to install everything. YOLO
+- Event-driven, no polling
+- One tap installs everything in scope. YOLO
 
 ## Installation
 
@@ -31,7 +34,7 @@ Copy `custom_components/yolo_updater/` into your Home Assistant `custom_componen
 
 #### Easy Mode
 
-After installation, just click the following button and **Submit**. No configuration needed.
+Click the following button and **Submit**. No configuration needed to add it.
 
 [![Add Integration to Home Assistant.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=yolo_updater)
 
@@ -39,11 +42,21 @@ After installation, just click the following button and **Submit**. No configura
 
 Add the integration via **Settings → Devices & Services → Add Integration → YOLO Updater** and **Submit**.
 
+## Choose what it updates
+
+Out of the box YOLO installs **nothing**. You opt in first. On the integration, hit **Configure**:
+
+1. **Categories.** Tick the update types YOLO may install: HACS, Firmware, Apps, Other.
+2. **Exclude integrations.** Leave out whole integrations within those categories.
+3. **Exclude entities.** Leave out individual updates.
+
+You can't opt in Home Assistant Core, OS, or Supervisor. YOLO always skips them.
+
 ## Usage
 
-The `! YOLO Update All` entity will appear in your updates list whenever any updates are pending. Press **Install** to update everything at once.
+The `! YOLO Update All` entity appears in your updates list whenever an in-scope update is pending. Press **Install** to update everything in scope at once.
 
-> ⚠️ This installs all pending updates without confirmation. That's the point.
+> ⚠️ This installs your opted-in updates with no confirmation dialog. That's the point. YOLO always leaves Core, OS, and Supervisor alone.
 
 ## Credits
 
