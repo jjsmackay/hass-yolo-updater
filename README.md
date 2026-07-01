@@ -67,4 +67,4 @@ The `! YOLO Update All` entity appears in your updates list whenever an in-scope
 
 ## License
 
-[GLWT (Good Luck With That) Public License](LICENSE) — Good luck and Godspeed.
+[MIT](LICENSE)
