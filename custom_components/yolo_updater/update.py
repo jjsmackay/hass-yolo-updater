@@ -16,8 +16,6 @@ from . import scope
 
 _LOGGER = logging.getLogger(__name__)
 
-TEST_MODE = False  # Set True to load dummy update entities for testing
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -25,12 +23,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Update All entity."""
-    entities: list[UpdateEntity] = [UpdateAllEntity(hass, entry)]
-    if TEST_MODE:
-        from .test_entities import create_test_entities
-
-        entities.extend(create_test_entities(hass, entry))
-    async_add_entities(entities)
+    async_add_entities([UpdateAllEntity(hass, entry)])
 
 
 class UpdateAllEntity(UpdateEntity):

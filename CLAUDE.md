@@ -11,7 +11,9 @@ A Home Assistant custom integration that exposes a single `update.yolo_all` enti
 - `__init__.py` — entry setup/unload, declares `DOMAIN = "yolo_updater"`
 - `config_flow.py` — single-instance config flow, no options
 - `update.py` — core logic: `UpdateAllEntity` subscribes to `EVENT_STATE_CHANGED` on the HA event bus, filters to `update.*` entities (excluding itself), and rescans on `EVENT_HOMEASSISTANT_STARTED` to catch integrations that load late
-- `test_entities.py` — dummy `UpdateEntity` instances; enabled via `TEST_MODE = True` in `update.py`
+- `scripts/dev_entities.py` — dev-only tool (not shipped) that injects dummy `update.*` entities into a running HA via the REST API, so `update.yolo_all` aggregates them like real updates
+
+The shipped integration under `custom_components/yolo_updater/` contains no test or dev code — dummy entities are spawned externally (see Testing locally).
 
 ## Key design decisions
 
@@ -21,6 +23,13 @@ A Home Assistant custom integration that exposes a single `update.yolo_all` enti
 
 ## Testing locally
 
-Set `TEST_MODE = True` in `update.py` to load three dummy update entities (two pending, one current).
+Against a running HA, spawn three dummy update entities (two pending, one current):
+
+```
+export HA_TOKEN="<long-lived token>"   # HA Profile > Long-lived access tokens
+python scripts/dev_entities.py         # spawn; --clear to reset them
+```
+
+They land as `update.dummy_widget_*`. Because they aren't in the entity registry, YOLO categorises them as "Other"/"Firmware" — opt those categories in via the YOLO Updater options to see them aggregated. The states persist until HA restarts or you `--clear`.
 
 After any code change, restart Home Assistant and check the logs. Add the integration via Settings > Devices & Services > Add Integration > YOLO Updater.
