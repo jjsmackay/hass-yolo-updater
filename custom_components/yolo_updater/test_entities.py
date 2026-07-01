@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
+from homeassistant.components.update import (
+    UpdateDeviceClass,
+    UpdateEntity,
+    UpdateEntityFeature,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -24,6 +28,7 @@ DUMMY_UPDATES = [
         "name": "Dummy Widget Beta",
         "installed": "3.1.0",
         "latest": "3.2.0",
+        "device_class": "firmware",
         # no release_url -> renders as plain text
     },
     {
@@ -56,6 +61,11 @@ class DummyUpdateEntity(UpdateEntity):
         self._attr_installed_version = info["installed"]
         self._attr_latest_version = info["latest"]
         self._attr_release_url = info.get("release_url")
+        self._attr_device_class = (
+            UpdateDeviceClass.FIRMWARE
+            if info.get("device_class") == "firmware"
+            else None
+        )
 
     async def async_install(
         self, version: str | None, backup: bool, **kwargs

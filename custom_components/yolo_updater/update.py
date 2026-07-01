@@ -9,7 +9,10 @@ from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, EVENT_STATE_CHANGED
 from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from . import scope
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -94,19 +97,29 @@ class UpdateAllEntity(UpdateEntity):
         return f"{len(self._pending)} update(s) pending"
 
     async def async_release_notes(self) -> str | None:
-        """Full pending list with release-notes links (not length-capped)."""
+        """Full pending list, grouped by category (not length-capped)."""
         if not self._pending:
             return None
-        lines = [f"**{len(self._pending)} update(s) pending:**\n"]
-        for entity_id, info in sorted(self._pending.items()):
-            name = info.get("friendly_name", entity_id)
-            if name and name.endswith(" Update"):
-                name = name[: -len(" Update")]
-            cur = info.get("installed_version") or "?"
-            new = info.get("latest_version") or "?"
-            url = info.get("release_url")
-            new_label = f"[{new}]({url})" if url else new
-            lines.append(f"- {name}: {cur} \u2192 {new_label}")
+        groups: dict[str, list[tuple[str, dict]]] = {}
+        for entity_id, info in self._pending.items():
+            category = info.get("category") or scope.CATEGORY_OTHER
+            groups.setdefault(category, []).append((entity_id, info))
+
+        lines = [f"**{len(self._pending)} update(s) pending:**"]
+        for category in scope.OPT_IN_CATEGORIES:
+            items = groups.get(category)
+            if not items:
+                continue
+            lines.append(f"\n**{scope.CATEGORY_LABELS[category]}**")
+            for _entity_id, info in sorted(items):
+                name = info.get("friendly_name", _entity_id)
+                if name and name.endswith(" Update"):
+                    name = name[: -len(" Update")]
+                cur = info.get("installed_version") or "?"
+                new = info.get("latest_version") or "?"
+                url = info.get("release_url")
+                new_label = f"[{new}]({url})" if url else new
+                lines.append(f"- {name}: {cur} \u2192 {new_label}")
         return "\n".join(lines)
 
     @property
@@ -122,7 +135,15 @@ class UpdateAllEntity(UpdateEntity):
         self, version: str | None, backup: bool, **kwargs: Any
     ) -> None:
         """Install all pending updates."""
-        targets = list(self._pending.keys())
+        registry = er.async_get(self._hass)
+        options = self._entry.options
+        targets = []
+        for entity_id in self._pending:
+            state = self._hass.states.get(entity_id)
+            device_class = state.attributes.get("device_class") if state else None
+            platform = self._platform_of(registry, entity_id)
+            if scope.in_scope(entity_id, platform, device_class, options):
+                targets.append(entity_id)
         if not targets:
             _LOGGER.info("No pending updates to install")
             return
@@ -144,6 +165,12 @@ class UpdateAllEntity(UpdateEntity):
         """Check if an entity is this entity (avoid self-tracking)."""
         return entity_id == self.entity_id
 
+    @staticmethod
+    def _platform_of(registry: er.EntityRegistry, entity_id: str) -> str | None:
+        """Return the integration platform that provides an entity, if known."""
+        entry = registry.async_get(entity_id)
+        return entry.platform if entry else None
+
     @callback
     def _on_ha_started(self, _event: Event) -> None:
         """Re-scan once HA is fully started."""
@@ -152,18 +179,26 @@ class UpdateAllEntity(UpdateEntity):
 
     @callback
     def _refresh_pending(self) -> None:
-        """Scan all current update entities and build pending dict."""
+        """Scan all current update entities and build the in-scope pending dict."""
         self._pending.clear()
+        registry = er.async_get(self._hass)
+        options = self._entry.options
         for state in self._hass.states.async_all("update"):
-            if self._is_self(state.entity_id):
+            if self._is_self(state.entity_id) or state.state != "on":
                 continue
-            if state.state == "on":
-                self._pending[state.entity_id] = {
-                    "friendly_name": state.attributes.get("friendly_name"),
-                    "installed_version": state.attributes.get("installed_version"),
-                    "latest_version": state.attributes.get("latest_version"),
-                    "release_url": state.attributes.get("release_url"),
-                }
+            platform = self._platform_of(registry, state.entity_id)
+            device_class = state.attributes.get("device_class")
+            if not scope.in_scope(state.entity_id, platform, device_class, options):
+                continue
+            self._pending[state.entity_id] = {
+                "friendly_name": state.attributes.get("friendly_name"),
+                "installed_version": state.attributes.get("installed_version"),
+                "latest_version": state.attributes.get("latest_version"),
+                "release_url": state.attributes.get("release_url"),
+                "category": scope.categorise(
+                    state.entity_id, platform, device_class
+                ),
+            }
 
     @callback
     def _on_state_change(self, event: Event) -> None:
@@ -173,14 +208,22 @@ class UpdateAllEntity(UpdateEntity):
             return
 
         new_state = event.data.get("new_state")
-        if new_state is None:
-            self._pending.pop(entity_id, None)
-        elif new_state.state == "on":
+        in_scope = False
+        if new_state is not None and new_state.state == "on":
+            registry = er.async_get(self._hass)
+            platform = self._platform_of(registry, entity_id)
+            device_class = new_state.attributes.get("device_class")
+            in_scope = scope.in_scope(
+                entity_id, platform, device_class, self._entry.options
+            )
+
+        if in_scope:
             self._pending[entity_id] = {
                 "friendly_name": new_state.attributes.get("friendly_name"),
                 "installed_version": new_state.attributes.get("installed_version"),
                 "latest_version": new_state.attributes.get("latest_version"),
                 "release_url": new_state.attributes.get("release_url"),
+                "category": scope.categorise(entity_id, platform, device_class),
             }
         else:
             self._pending.pop(entity_id, None)

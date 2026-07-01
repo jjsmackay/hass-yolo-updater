@@ -3,11 +3,46 @@
     "step": {
       "user": {
         "title": "YOLO Updater",
-        "description": "Press the button. Update everything. No ragrets. Press Submit to add it."
+        "description": "Add the aggregate update entity. Choose what it may update afterwards under Configure."
       }
     },
     "abort": {
       "single_instance_allowed": "Already configured. Only a single instance is allowed."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update categories",
+        "description": "Choose which categories YOLO may install. Anything left off is never installed. HA Core, Operating System, and Supervisor are never installed by YOLO.",
+        "data": {
+          "categories": "Categories to update"
+        }
+      },
+      "exclude_integrations": {
+        "title": "Exclude integrations",
+        "description": "Optionally exclude whole integrations. None of their updates will be installed by YOLO.",
+        "data": {
+          "exclude_integrations": "Excluded integrations"
+        }
+      },
+      "exclude_entities": {
+        "title": "Exclude entities",
+        "description": "Optionally exclude specific update entities. Entities from integrations you excluded on the previous step are already hidden here.",
+        "data": {
+          "exclude_entities": "Excluded update entities"
+        }
+      }
+    }
+  },
+  "selector": {
+    "categories": {
+      "options": {
+        "hacs": "HACS (custom integrations, cards, themes)",
+        "firmware": "Firmware (device/hardware updates)",
+        "addons": "Apps (add-ons)",
+        "other": "Other"
+      }
     }
   }
 }
